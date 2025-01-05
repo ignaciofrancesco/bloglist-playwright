@@ -49,5 +49,30 @@ describe("Blog app", () => {
       const message = page.getByText("Invalid credentials");
       await expect(message).toBeVisible();
     });
+
+    describe("When logged in", () => {
+      beforeEach(async ({ page }) => {
+        // Log in the user
+        await page.getByTestId("username").fill("user-1");
+        await page.getByTestId("password").fill("password-1");
+        await page.getByRole("button", { name: "Login" }).click();
+      });
+
+      test("a new blog can be created", async ({ page }) => {
+        // Arrange
+
+        // Act
+        await page.getByRole("button", { name: "New Blog" }).click();
+        await page.getByTestId("title-input").fill("test title");
+        await page.getByTestId("author-input").fill("test author");
+        await page.getByTestId("url-input").fill("test url");
+        await page.getByRole("button", { name: "Create" }).click();
+
+        // Assert
+        await expect(
+          page.locator(".bloglist").getByText("test title")
+        ).toBeVisible();
+      });
+    });
   });
 });
