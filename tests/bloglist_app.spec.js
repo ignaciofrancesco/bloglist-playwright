@@ -1,4 +1,6 @@
 const { test, expect, beforeEach, describe } = require("@playwright/test");
+const { loginWith, createBlog } = require("./helper");
+const { log } = require("console");
 
 describe("Blog app", () => {
   beforeEach(async ({ page, request }) => {
@@ -28,9 +30,7 @@ describe("Blog app", () => {
       // Arrange
 
       // Act
-      await page.getByTestId("username").fill("user-1");
-      await page.getByTestId("password").fill("password-1");
-      await page.getByRole("button", { name: "Login" }).click();
+      await loginWith(page, "user-1", "password-1");
 
       // Assert
       const message = page.getByText("name-1 logged in");
@@ -41,9 +41,7 @@ describe("Blog app", () => {
       // Arrange
 
       // Act
-      await page.getByTestId("username").fill("user-1");
-      await page.getByTestId("password").fill("wrong");
-      await page.getByRole("button", { name: "Login" }).click();
+      await loginWith(page, "user-1", "wrong");
 
       // Assert
       const message = page.getByText("Invalid credentials");
@@ -53,25 +51,44 @@ describe("Blog app", () => {
     describe("When logged in", () => {
       beforeEach(async ({ page }) => {
         // Log in the user
-        await page.getByTestId("username").fill("user-1");
-        await page.getByTestId("password").fill("password-1");
-        await page.getByRole("button", { name: "Login" }).click();
+        await loginWith(page, "user-1", "password-1");
       });
 
       test("a new blog can be created", async ({ page }) => {
         // Arrange
-
         // Act
-        await page.getByRole("button", { name: "New Blog" }).click();
-        await page.getByTestId("title-input").fill("test title");
-        await page.getByTestId("author-input").fill("test author");
-        await page.getByTestId("url-input").fill("test url");
-        await page.getByRole("button", { name: "Create" }).click();
+        await createBlog(page, "test title", "test author", "test url");
 
         // Assert
         await expect(
           page.locator(".bloglist").getByText("test title")
         ).toBeVisible();
+      });
+
+      describe("When there are 2 blogs", () => {
+        beforeEach(async ({ page }) => {
+          await createBlog(page, "test title 2", "test author 2", "test url 2");
+        });
+
+        test("a blog can be liked", async ({ page }) => {
+          const blogLocator = page
+            .locator(".bloglist")
+            .getByText("test title 2")
+            .locator("..");
+
+          // Expand the blog details by clicking 'View'
+          await blogLocator.getByRole("button", { name: "View" }).click();
+
+          // Click the like button
+          await blogLocator.getByTestId("like-button").click();
+
+          // Wait for the likes count to update
+          const likesLocator = blogLocator.getByText(/Likes \d+/);
+          await expect(likesLocator).toBeVisible(); // Ensure the likes element is rendered
+
+          // Wait for the likes count to reach 1
+          await expect(likesLocator).toHaveText(/Likes 1/);
+        });
       });
     });
   });
