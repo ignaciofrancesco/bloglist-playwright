@@ -89,6 +89,24 @@ describe("Blog app", () => {
           // Wait for the likes count to reach 1
           await expect(likesLocator).toHaveText(/Likes 1/);
         });
+
+        test("the user that created the blog can delete it", async ({
+          page,
+        }) => {
+          const blogLocator = page
+            .locator(".bloglist")
+            .getByText("test title 2")
+            .locator("..");
+
+          // Listener to confirm removal
+          page.on("dialog", (dialog) => dialog.accept());
+
+          // Remove the blog
+          await blogLocator.getByRole("button", { name: "Remove" }).click();
+
+          // Expect the blogLocator to not be visible anymore
+          await expect(blogLocator).not.toBeVisible();
+        });
       });
     });
   });
