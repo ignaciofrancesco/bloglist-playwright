@@ -4,6 +4,11 @@ const loginWith = async (page, username, password) => {
   await page.getByRole("button", { name: "Login" }).click();
 };
 
+const logout = async (page) => {
+  await page.getByRole("button", { name: "Logout" }).click();
+  await page.getByText("Please, login").waitFor();
+};
+
 const createBlog = async (page, title, author, url) => {
   await page.getByRole("button", { name: "New Blog" }).click();
   await page.getByTestId("title-input").fill(title);
@@ -13,4 +18,4 @@ const createBlog = async (page, title, author, url) => {
   await page.locator(".bloglist").getByText("test title").waitFor();
 };
 
-export { loginWith, createBlog };
+export { loginWith, createBlog, logout };

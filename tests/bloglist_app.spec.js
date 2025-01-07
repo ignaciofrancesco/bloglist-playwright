@@ -1,18 +1,26 @@
 const { test, expect, beforeEach, describe } = require("@playwright/test");
-const { loginWith, createBlog } = require("./helper");
-const { log } = require("console");
+const { loginWith, logout, createBlog } = require("./helper");
 
 describe("Blog app", () => {
   beforeEach(async ({ page, request }) => {
     // Reset the DB
     await request.post("http://localhost:3003/api/testing/reset");
 
-    // create a user for the backend here
+    // create user 1 for the backend here
     await request.post("http://localhost:3003/api/users", {
       data: {
         username: "user-1",
         password: "password-1",
         name: "name-1",
+      },
+    });
+
+    // create user 1 for the backend here
+    await request.post("http://localhost:3003/api/users", {
+      data: {
+        username: "user-2",
+        password: "password-2",
+        name: "name-2",
       },
     });
 
@@ -48,7 +56,7 @@ describe("Blog app", () => {
       await expect(message).toBeVisible();
     });
 
-    describe("When logged in", () => {
+    describe("When logged in as user-1", () => {
       beforeEach(async ({ page }) => {
         // Log in the user
         await loginWith(page, "user-1", "password-1");
@@ -65,15 +73,15 @@ describe("Blog app", () => {
         ).toBeVisible();
       });
 
-      describe("When there are 2 blogs", () => {
+      describe("When there is a blog", () => {
         beforeEach(async ({ page }) => {
-          await createBlog(page, "test title 2", "test author 2", "test url 2");
+          await createBlog(page, "test title 1", "test author 1", "test url 1");
         });
 
-        test("a blog can be liked", async ({ page }) => {
+        test("the blog can be liked", async ({ page }) => {
           const blogLocator = page
             .locator(".bloglist")
-            .getByText("test title 2")
+            .getByText("test title 1")
             .locator("..");
 
           // Expand the blog details by clicking 'View'
@@ -95,7 +103,7 @@ describe("Blog app", () => {
         }) => {
           const blogLocator = page
             .locator(".bloglist")
-            .getByText("test title 2")
+            .getByText("test title 1")
             .locator("..");
 
           // Listener to confirm removal
@@ -106,6 +114,25 @@ describe("Blog app", () => {
 
           // Expect the blogLocator to not be visible anymore
           await expect(blogLocator).not.toBeVisible();
+        });
+
+        test("another user cannot see the remove button", async ({ page }) => {
+          // Logout
+          await logout(page);
+
+          // Login as user-2
+          await loginWith(page, "user-2", "password-2");
+
+          const blogLocator = page
+            .locator(".bloglist")
+            .getByText("test title 1")
+            .locator("..");
+
+          await expect(blogLocator).toBeVisible();
+
+          await expect(
+            blogLocator.getByRole("button", { name: "Remove" })
+          ).not.toBeVisible();
         });
       });
     });
