@@ -1,5 +1,5 @@
 const { test, expect, beforeEach, describe } = require("@playwright/test");
-const { loginWith, logout, createBlog } = require("./helper");
+const { loginWith, logout, createBlog, likeBlogNTimes } = require("./helper");
 
 describe("Blog app", () => {
   beforeEach(async ({ page, request }) => {
@@ -133,6 +133,47 @@ describe("Blog app", () => {
           await expect(
             blogLocator.getByRole("button", { name: "Remove" })
           ).not.toBeVisible();
+        });
+      });
+
+      describe("When there are 3 blogs", () => {
+        beforeEach(async ({ page }) => {
+          await createBlog(page, "title 1", "author 1", "url 1");
+          await createBlog(page, "title 2", "author 2", "url 2");
+          await createBlog(page, "title 3", "author 3", "url 3");
+        });
+
+        test("blogs are arranged in the order according to the likes, with the most likes first", async ({
+          page,
+        }) => {
+          await likeBlogNTimes(page, "title 1", 1);
+          await likeBlogNTimes(page, "title 2", 3);
+          await likeBlogNTimes(page, "title 3", 5);
+
+          // Access the DOM in order, and expect to be sorted
+          const blogsLocator = page.locator(".bloglist").locator(".blog");
+
+          const firstBlogLikes = await blogsLocator
+            .first()
+            .getByText(/Likes \d+/)
+            .textContent();
+          const firstPlace = parseInt(firstBlogLikes.split(" ")[1]);
+
+          const secondBloglikes = await blogsLocator
+            .nth(1)
+            .getByText(/Likes \d+/)
+            .textContent();
+          const secondPlace = parseInt(secondBloglikes.split(" ")[1]);
+
+          const thirdBlogLikes = await blogsLocator
+            .nth(2)
+            .getByText(/Likes \d+/)
+            .textContent();
+          const thirdPlace = parseInt(thirdBlogLikes.split(" ")[1]);
+
+          expect(firstPlace).toBe(5);
+          expect(secondPlace).toBe(3);
+          expect(thirdPlace).toBe(1);
         });
       });
     });
